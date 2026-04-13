@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build for macOS ARM64
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+        run: go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION }}" -o fpproto-darwin-arm64 ./cmd/fpproto
+
+      - name: Build for macOS AMD64
+        env:
+          GOOS: darwin
+          GOARCH: amd64
+        run: go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION }}" -o fpproto-darwin-amd64 ./cmd/fpproto
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            fpproto-darwin-arm64
+            fpproto-darwin-amd64
