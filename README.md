@@ -5,7 +5,7 @@ A Go CLI that lets the product team create, clone, and archive prototyping envir
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Flicent/fpproto/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Flicent/fpproto/main/install.sh | sudo bash
 ```
 
 Or build from source:
