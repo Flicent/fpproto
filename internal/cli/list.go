@@ -16,10 +16,11 @@ import (
 )
 
 type prototypeEntry struct {
-	name      string
-	createdBy string
-	createdAt time.Time
-	url       string
+	name         string
+	createdBy    string
+	createdAt    time.Time
+	url          string
+	supabaseMode string
 }
 
 func NewListCmd() *cobra.Command {
@@ -86,11 +87,17 @@ func NewListCmd() *cobra.Command {
 
 				createdAt, _ := time.Parse(time.RFC3339, metadata.CreatedAt)
 
+				mode := metadata.SupabaseMode
+				if mode == "" {
+					mode = config.SupabaseModeLive
+				}
+
 				entries = append(entries, prototypeEntry{
-					name:      repo.Name,
-					createdBy: metadata.CreatedBy,
-					createdAt: createdAt,
-					url:       url,
+					name:         repo.Name,
+					createdBy:    metadata.CreatedBy,
+					createdAt:    createdAt,
+					url:          url,
+					supabaseMode: mode,
 				})
 			}
 
@@ -106,14 +113,21 @@ func NewListCmd() *cobra.Command {
 
 			fmt.Printf("\n  Active Prototypes (%d)\n\n", len(entries))
 
-			headers := []string{"NAME", "CREATED BY", "CREATED", "URL"}
+			headers := []string{"NAME", "CREATED BY", "CREATED", "SUPABASE", "URL"}
 			rows := make([][]string, 0, len(entries))
 
 			for _, e := range entries {
+				modeLabel := e.supabaseMode
+				if modeLabel == config.SupabaseModeLocal {
+					modeLabel = ui.MutedStyle.Render("local")
+				} else {
+					modeLabel = ui.WarningStyle.Render("live")
+				}
 				rows = append(rows, []string{
 					ui.AccentStyle.Render(e.name),
 					e.createdBy,
 					relativeTime(e.createdAt),
+					modeLabel,
 					ui.URLStyle.Render(e.url),
 				})
 			}

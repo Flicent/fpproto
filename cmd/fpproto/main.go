@@ -34,6 +34,7 @@ func main() {
 		cli.NewDestroyCmd(),
 		cli.NewListCmd(),
 		cli.NewUpdateCmd(),
+		cli.NewSupabaseCmd(),
 	)
 
 	// Background version check (skip for update command itself).

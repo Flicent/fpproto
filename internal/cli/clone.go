@@ -10,6 +10,8 @@ import (
 	"github.com/fieldpulse-prototypes/fpproto/internal/api"
 	"github.com/fieldpulse-prototypes/fpproto/internal/auth"
 	"github.com/fieldpulse-prototypes/fpproto/internal/config"
+	"github.com/fieldpulse-prototypes/fpproto/internal/docker"
+	"github.com/fieldpulse-prototypes/fpproto/internal/supabase"
 	"github.com/fieldpulse-prototypes/fpproto/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -31,6 +33,7 @@ func NewCloneCmd() *cobra.Command {
 			var metadata config.PrototypeMetadata
 			var anonKey, serviceRoleKey, supabaseURL string
 			var vercelURL string
+			var cloneDir string
 
 			err := ui.RunSteps([]ui.Step{
 				{
@@ -89,7 +92,7 @@ func NewCloneCmd() *cobra.Command {
 							return "", fmt.Errorf("failed to create prototypes directory: %w", err)
 						}
 
-						cloneDir := filepath.Join(config.PrototypesPath(), name)
+						cloneDir = filepath.Join(config.PrototypesPath(), name)
 						repoURL := fmt.Sprintf("https://github.com/%s/%s.git", config.RemoteOrg, name)
 
 						cloneCmd := exec.Command("git", "clone", repoURL, cloneDir)
@@ -113,19 +116,54 @@ func NewCloneCmd() *cobra.Command {
 						if err := json.Unmarshal(data, &metadata); err != nil {
 							return "", fmt.Errorf("failed to parse .fpproto.json: %w", err)
 						}
-						return metadata.SupabaseProjectRef, nil
+
+						// Default to live for older prototypes created before local mode existed
+						if metadata.SupabaseMode == "" {
+							metadata.SupabaseMode = config.SupabaseModeLive
+						}
+
+						return fmt.Sprintf("%s (%s mode)", metadata.SupabaseProjectRef, metadata.SupabaseMode), nil
 					},
 				},
 				{
-					Title: "Fetching Supabase credentials",
+					Title: "Setting up Supabase",
 					Action: func() (string, error) {
-						supabase := api.NewSupabaseClient(cfg.SupabaseAccessToken, cfg.SupabaseOrgID)
+						if metadata.SupabaseMode == config.SupabaseModeLocal {
+							// Local mode: check Docker and start local Supabase
+							if err := docker.Check(); err != nil {
+								return "", err
+							}
+							if err := supabase.CheckCLI(); err != nil {
+								return "", err
+							}
+							if err := supabase.Init(cloneDir); err != nil {
+								return "", err
+							}
+							if err := supabase.Start(cloneDir); err != nil {
+								return "", err
+							}
+
+							status, err := supabase.Status(cloneDir)
+							if err != nil {
+								return "", err
+							}
+
+							supabaseURL = status.APIURL
+							anonKey = status.AnonKey
+							serviceRoleKey = status.ServiceRoleKey
+
+							return fmt.Sprintf("local instance at %s", status.APIURL), nil
+						}
+
+						// Live mode: fetch credentials from Supabase cloud
+						sb := api.NewSupabaseClient(cfg.SupabaseAccessToken, cfg.SupabaseOrgID)
 						var err error
-						anonKey, serviceRoleKey, err = supabase.GetAPIKeys(metadata.SupabaseProjectRef)
+						anonKey, serviceRoleKey, err = sb.GetAPIKeys(metadata.SupabaseProjectRef)
 						if err != nil {
 							return "", fmt.Errorf("failed to fetch API keys: %w", err)
 						}
 						supabaseURL = fmt.Sprintf("https://%s.supabase.co", metadata.SupabaseProjectRef)
+
 						return "credentials fetched", nil
 					},
 				},
@@ -178,11 +216,17 @@ func NewCloneCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
+			supabaseLabel := "local (Docker)"
+			if metadata.SupabaseMode == config.SupabaseModeLive {
+				supabaseLabel = supabaseURL
+			}
+
 			summary := ui.RenderSummaryBox(
 				name+" cloned!",
 				[][2]string{
 					{"Live URL", vercelURL},
 					{"Local path", filepath.Join("~/prototypes", name)},
+					{"Supabase", supabaseLabel},
 				},
 				[]string{
 					fmt.Sprintf("cd ~/prototypes/%s", name),

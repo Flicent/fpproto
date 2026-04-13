@@ -1,12 +1,15 @@
 name: Release
 
+# PAUSED: automatic releases disabled during active development.
+# To re-enable, restore the push trigger below.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-      - 'LICENSE'
+  workflow_dispatch: # manual-only for now
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - '*.md'
+  #     - 'docs/**'
+  #     - 'LICENSE'
 
 permissions:
   contents: write

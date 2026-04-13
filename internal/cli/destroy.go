@@ -107,6 +107,11 @@ func NewDestroyCmd() *cobra.Command {
 							return "", fmt.Errorf("failed to parse .fpproto.json: %w", err)
 						}
 
+						// Local mode prototypes have no cloud project to delete
+						if metadata.SupabaseMode == config.SupabaseModeLocal {
+							return "local mode — no cloud project to delete", nil
+						}
+
 						if metadata.SupabaseProjectRef == "" {
 							return "already deleted", nil
 						}

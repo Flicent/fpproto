@@ -56,6 +56,7 @@ func NewSetupCmd() *cobra.Command {
 							VercelTeamID:        remoteConfig.VercelTeamID,
 							ConfigVersion:       remoteConfig.ConfigVersion,
 							UserEmail:           email,
+							SupabaseDeployHash:  remoteConfig.SupabaseDeployHash,
 						}
 
 						if err := config.Save(cfg); err != nil {
