@@ -24,13 +24,21 @@ jobs:
       - name: Get latest tag
         id: latest_tag
         run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Bump version
         id: bump
         run: |
           CURRENT="${{ steps.latest_tag.outputs.TAG }}"
+
+          # First release starts at v1.0.0
+          if [ -z "$CURRENT" ]; then
+            echo "VERSION=v1.0.0" >> "$GITHUB_OUTPUT"
+            echo "First release: v1.0.0"
+            exit 0
+          fi
+
           # Strip leading v
           VERSION="${CURRENT#v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
