@@ -7,7 +7,7 @@ const (
 	ConfigFile = "config.json"
 
 	// RemoteOrg is the GitHub org that owns shared config and templates.
-	RemoteOrg = "fieldpulse-prototypes"
+	RemoteOrg = "Flicent"
 	// RemoteConfigRepo is the repo that stores the shared remote config.
 	RemoteConfigRepo = ".fpproto-config"
 	// RemoteConfigPath is the path inside RemoteConfigRepo to the config file.
