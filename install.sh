@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO="fieldpulse-prototypes/fpproto"
+REPO="Flicent/fpproto"
 INSTALL_DIR="/usr/local/bin"
 
 # Detect architecture
