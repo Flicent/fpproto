@@ -2,8 +2,7 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
 
 permissions:
   contents: write
@@ -14,31 +13,61 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: go.mod
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version
+        id: bump
+        run: |
+          CURRENT="${{ steps.latest_tag.outputs.TAG }}"
+          # Strip leading v
+          VERSION="${CURRENT#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Check commit messages since last tag for bump signals
+          if git log "${CURRENT}..HEAD" --pretty=%s 2>/dev/null | grep -qiE '^(feat|feature)'; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "VERSION=$NEW" >> "$GITHUB_OUTPUT"
+          echo "Bumping $CURRENT -> $NEW"
 
       - name: Build for macOS ARM64
         env:
           GOOS: darwin
           GOARCH: arm64
-        run: go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION }}" -o fpproto-darwin-arm64 ./cmd/fpproto
+        run: go build -ldflags "-X main.version=${{ steps.bump.outputs.VERSION }}" -o fpproto-darwin-arm64 ./cmd/fpproto
 
       - name: Build for macOS AMD64
         env:
           GOOS: darwin
           GOARCH: amd64
-        run: go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION }}" -o fpproto-darwin-amd64 ./cmd/fpproto
+        run: go build -ldflags "-X main.version=${{ steps.bump.outputs.VERSION }}" -o fpproto-darwin-amd64 ./cmd/fpproto
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.bump.outputs.VERSION }}
+          git push origin ${{ steps.bump.outputs.VERSION }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.bump.outputs.VERSION }}
           generate_release_notes: true
           files: |
             fpproto-darwin-arm64
