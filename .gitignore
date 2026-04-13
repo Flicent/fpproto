@@ -1,5 +1,5 @@
 # Binaries
-fpproto
+/fpproto
 fpproto-darwin-*
 *.exe
 
