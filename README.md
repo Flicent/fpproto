@@ -14,6 +14,12 @@ Or build from source:
 go build -o fpproto ./cmd/fpproto
 ```
 
+## Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Flicent/fpproto/main/uninstall.sh | sudo bash
+```
+
 ## Prerequisites
 
 - [GitHub CLI](https://cli.github.com/) installed and authenticated (`brew install gh && gh auth login`)
