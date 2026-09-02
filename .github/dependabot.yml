@@ -1,0 +1,55 @@
+# Dependabot version updates.
+#
+# Separate from the two features that may already be on for this repo: alerts
+# only detect vulnerable dependencies, and security updates open PRs for those
+# specific vulnerabilities. Neither keeps a dependency current when it is merely
+# out of date. This file does.
+#
+# Patch releases only, grouped into one pull request per ecosystem per week. The
+# failure mode for this automation is volume: a stream of PRs nobody reviews
+# teaches the team to ignore the label, and the security ones get ignored along
+# with it. Widen by removing the `ignore` blocks once the volume is known.
+version: 2
+
+updates:
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      gomod-patches:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+
+  # Third-party actions here are pinned to full commit SHAs per the CI/CD spec.
+  # That is right for supply-chain reasons, and it also means a pinned action
+  # never moves again unless something moves it.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      actions-patches:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
